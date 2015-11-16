@@ -4,22 +4,29 @@ A tool for consolidating disorganized image libraries and organizing them by the
 
 ## Installing
 
+### GNU/Linux
+
     # apt-get install libimage-exiftool-perl
+    $ bundle install
+
+### Mac OS X
+
+    $ brew install exiftool
     $ bundle install
 
 ## Usage
 
-    $ ruby organize.rb source_directory output_directory
+    $ ruby organize.rb source_directory destination_directory
 
 ## Folder Structure
 
 If the image's EXIF data contains a `date_time_original_civil`, then the image will be moved into a folder based on the date the image was taken.
 
-    output_directory/YYYY/MM/DD/
+    destination_directory/YYYY/MM/DD/
 
 If the image's EXIF data does not contain a `date_time_original_civil`, the image will be moved to
 
-    output_directory/Unsorted
+    destination_directory/Unsorted
 
 ## Duplicate Files
 

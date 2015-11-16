@@ -4,14 +4,18 @@ require 'rainbow/ext/string'
 require 'ruby-progressbar'
 require 'digest/md5'
 
-def stash(dst_dir, file)
-  outdir = File.join dst_dir, 'unsorted'
-  FileUtils::mkdir_p outdir
-  dst_path = File.join(outdir, File.basename(file))
-  FileUtils::mv file, outdir
+def stash(p, dst_dir, file)
+  begin
+    outdir = File.join dst_dir, 'unsorted'
+    FileUtils::mkdir_p outdir
+    dst_path = File.join(outdir, File.basename(file))
+    FileUtils::mv file, outdir
+  rescue
+    p.log "ERROR: Unable to stash #{file} in #{dst_dir}".color(:red)
+  end
 end
 
-VALID_EXTENSIONS = %w{.jpg .tiff .nef .raf .dng .mov .mp4 .rw2}
+VALID_EXTENSIONS = %w{.jpg .tiff .tif .nef .raf .dng .mov .mp4 .rw2}
 MEGABYTE = 1024 * 1024
 
 src_dir = File.expand_path ARGV[0]
@@ -23,7 +27,7 @@ puts "Finding files in #{src_dir}..."
 
 files = Dir.glob("**/*")
 
-p = ProgressBar.create(title: 'Organizing', total: files.count, format: '%c/%C %t')
+p = ProgressBar.create(title: 'Organizing', total: files.count, format: '%t %c/%C %B %e')
 
 files.each do |file|
   unless File.file?(file) && VALID_EXTENSIONS.include?(File.extname(file).downcase)
@@ -33,21 +37,21 @@ files.each do |file|
 
   filename = File.basename(file)
 
-  p.log filename.color(:blue)
+  p.log file.color(:blue)
 
   begin
     e = Exiftool.new(file)
     r = e.to_hash
   rescue ArgumentError
     p.log "ERROR: Exception thrown opening #{filename}, stashing!".color(:red)
-    stash(dst_dir, file)
+    stash(p, dst_dir, file)
     p.increment
     next
   end
 
   unless r[:date_time_original_civil]
-    stash(dst_dir, file)
-    p.log 'ERROR: date_time_original not found in EXIF data, stashing!'.color(:red)
+    p.log 'ERROR: date_time_original_civil not found in EXIF data, stashing!'.color(:red)
+    stash(p, dst_dir, file)
     p.increment
     next
   end
@@ -95,7 +99,12 @@ files.each do |file|
     end
   end
 
-  FileUtils::mv file, outdir
-  p.log "Moved #{filename} to #{dst_path}".color(:green)
+  begin
+    FileUtils::mv file, outdir
+    p.log "Moved #{file} to #{dst_path}".color(:green)
+  rescue
+    p.log "ERROR: Unable to move #{file} to #{dst_path}".color(:red)
+  end
+
   p.increment
 end
